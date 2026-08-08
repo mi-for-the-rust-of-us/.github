@@ -83,7 +83,7 @@ Two rules, and hypomnesis is the clearest example of both.
 
 **Demand gates features.** hypomnesis's `0.3.0` section is a list of things deliberately *not* built: an AMD ROCm backend, a segmented per-process VRAM API, per-process attribution inside the spill tracker. Each one records what would un-gate it, and until that happens it stays unbuilt. Unshipped work with a written reason is more useful than a promise with a date.
 
-**Dogfooding supplies the demand.** Most hypomnesis releases since v0.2.4 originate in a written report from a real candle-mi or askesis run, not from a feature wishlist. `hmn watch` exists because a 15-hour training campaign had no way to attach to a job already running. `--follow-new` exists because `hmn watch` attached to 19 sequential test processes and froze its PID set at the wrong moment. The `cli` feature became default-on because a rented-GPU deploy ran `cargo install hypomnesis`, got exit 0, and got no binary.
+**Dogfooding supplies the demand.** Most hypomnesis releases since v0.2.4 originate in a written report from a real research run, not from a feature wishlist. `hmn watch` exists because a 15-hour training campaign had no way to attach to a job already running. `--follow-new` exists because `hmn watch` attached to 19 sequential test processes and froze its PID set at the wrong moment. The `cli` feature became default-on because a rented-GPU deploy ran `cargo install hypomnesis`, got exit 0, and got no binary.
 
 The consequence worth stating plainly: **if you want something here, an issue describing the run that needed it will move it much further than a feature request.**
 

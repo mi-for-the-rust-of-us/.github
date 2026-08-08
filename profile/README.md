@@ -61,7 +61,7 @@ Solid arrows are hard dependencies; dotted arrows are optional, behind the named
 - **MIT OR Apache-2.0**, on every crate.
 - **`unsafe` is forbidden by default.** hf-fetch-model forbids it outright. The other three allow it only in the narrow paths that genuinely need it (memory-mapped reads, and FFI to NVML, DXGI, PDH and Metal), and each states its own exemption in its README badge.
 - **Pre-1.0.** The APIs may change between minor versions. Every crate keeps a `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/), and that changelog, not any roadmap, is the authoritative record of what shipped.
-- **Dogfooding is the development method.** candle-mi is the demanding consumer that drives the other three: most of hypomnesis's releases since v0.2.4 originate in a written dogfooding report from a real candle-mi or askesis run, not from a feature wishlist.
+- **Dogfooding is the development method.** candle-mi is the demanding consumer that drives the other three: most of hypomnesis's releases since v0.2.4 originate in a written dogfooding report from a real research run, not from a feature wishlist.
 
 ## Roadmap
 
