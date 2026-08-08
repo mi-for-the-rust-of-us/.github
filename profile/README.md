@@ -14,7 +14,7 @@ Every crate here exists because of one constraint: **a single consumer card has 
 The constraint turned out to be far less limiting than the field's tooling assumes. On that one card, at F32 precision, which is what research-grade numerical parity actually requires:
 
 - Decoder-only transformers up to roughly **7B parameters** load and run, including LLaMA 1/2/3, Mistral, Qwen 2/2.5/3, Phi-3/4, Gemma, Gemma 2 and StarCoder2. Also RWKV-6/7 linear RNNs and masked-diffusion language models, which most interpretability tooling does not reach at all.
-- Anthropic's [Figure 13 rhyme-planning result](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#dives-poem-location) replicates with a **524K-feature Cross-Layer Transcoder**, suppress-and-inject position sweep included.
+- Anthropic's [Figure 13 rhyme-planning experiment](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#dives-poem-location) runs end to end on a **524K-feature Cross-Layer Transcoder**, suppress-and-inject position sweep included, against a CLT implementation validated at **90/90 top-10 features** against the Python reference. And not once: enough model-by-transcoder cells fit on the card to show that the single-position signature reproduces while the *planning site itself does not*. That is a finding you cannot reach by replicating a figure one time.
 - The logit lens over LLaMA 3.2 1B runs in about **112 ms**.
 
 None of that needs a cluster, an H100, or a cloud budget. If you have a 16 GB card, most of what is in these repositories is reachable from your desk, and that is the whole point of the organization.
@@ -65,7 +65,7 @@ Solid arrows are hard dependencies; dotted arrows are optional, behind the named
 
 ## Roadmap
 
-The cross-crate roadmap lives in [ROADMAP.md](ROADMAP.md), and the tracked items are on the [organization project board](https://github.com/orgs/mi-for-the-rust-of-us/projects).
+The cross-crate roadmap lives in [ROADMAP.md](https://github.com/mi-for-the-rust-of-us/.github/blob/main/ROADMAP.md): what is shipped, what is next, and the work that belongs to no single crate.
 
 Per-crate detail stays with each crate: see its `CHANGELOG.md` for what has shipped and its own `ROADMAP.md` for what is planned.
 
