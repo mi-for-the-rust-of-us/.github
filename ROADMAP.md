@@ -29,7 +29,9 @@ This is the single largest audience change on the roadmap, and it is worth being
 
 candle-mi `0.2.0` adds reference-grade TopK sparse-autoencoder training. Today candle-mi can *load and use* SAEs, CLTs and PLTs but cannot *train* them, which means every experiment is limited to dictionaries somebody else published, for models somebody else chose.
 
-Masked-diffusion models are the proving ground, because no public dictionary exists for them at all, so a trained-in-candle-mi SAE is the only way DLM-Scope-style analysis happens. The v0.1.20 and v0.1.21 trainable-backbone work (`track_op` dispatch, `OthelloGpt::init`, the checkpointable `AdamW` behind the `training` feature) exists to make this possible.
+Masked-diffusion models are the proving ground, because no public dictionary exists for them at all, so a trained-in-candle-mi SAE is the only way DLM-Scope-style analysis happens.
+
+The groundwork is already carrying real weight rather than waiting to be tested. The v0.1.20 and v0.1.21 trainable-backbone work (`track_op` dispatch, `OthelloGpt::init`, the checkpointable `AdamW` behind the `training` feature) is what a multi-epoch, multi-stage masked-diffusion training run is currently running on, staged across process boundaries and validated step-for-step against a PyTorch oracle. The SAE trainer lands on tested ground.
 
 ### Edition 2024
 
@@ -57,7 +59,23 @@ This is the constraint most likely to bite someone who edits one manifest withou
 
 ### Upstream candle
 
-candle-mi tracks a cluster of nine fused-operation issues upstream in [huggingface/candle](https://github.com/huggingface/candle), mapped in a [posted comment on candle#2168](https://github.com/huggingface/candle/issues/2168#issuecomment-5150289607); drafts and the tracker live in candle-mi's `docs/upstream/`. Nothing in this roadmap is scheduled behind an upstream fix. Upstream reacts on a scale of weeks to months, so every issue is written to stand alone and every workaround ships locally first.
+Two threads, both feeding [huggingface/candle](https://github.com/huggingface/candle).
+
+**The fused-operation cluster.** Nine related issues, mapped in a [posted comment on candle#2168](https://github.com/huggingface/candle/issues/2168#issuecomment-5150289607); drafts and the tracker live in candle-mi's `docs/upstream/`.
+
+**Three open pull requests, all from actually training a model on this stack**, all measured on the same RTX 5060 Ti:
+
+| PR | What it does | Effect |
+|---|---|---|
+| [#3819](https://github.com/huggingface/candle/pull/3819) | `AdamW::step_t`, `set_step_t`, `moments` | Makes optimizer state reachable, so a run staged across processes resumes instead of re-applying Adam's warm-up bias correction at every boundary |
+| [#3822](https://github.com/huggingface/candle/pull/3822) | Store the first gradient directly instead of adding it into fresh zeros | `backward()` 413.7 ms to 251.8 ms; whole step 0.521 s to 0.391 s |
+| [#3823](https://github.com/huggingface/candle/pull/3823) | Analytic `CustomOp::bwd` for the fused `softmax_last_dim` and `layer_norm` | Step 0.391 s to 0.333 s, 41.9k to 49.2k tokens/s, with step-0 loss bit-identical to PyTorch |
+
+#3823 is a correctness fix before it is a performance one. Those fused ops record no backward op, so `backward()` reaches them and stops: every parameter upstream trains as if frozen, with no error, no warning, and a loss that still goes down.
+
+candle-mi already defends against that without waiting for a merge. Its `nn_ops` module probes once per process whether the installed `candle-nn`'s fused ops actually carry gradients, then dispatches on `Tensor::track_op`: an inference forward takes the fused kernel and stays byte-identical to calling it directly, while a forward under a `VarMap` takes the composed form when the runtime cannot back-propagate through the fused one. Fast when the runtime supports it, correct when it does not.
+
+That is the pattern for everything upstream here: ship the local defense first, then send the fix. Upstream reacts on a scale of weeks to months, so nothing on this roadmap is scheduled behind a merge. Current training runs consume the two performance patches through a `[patch.crates-io]` pointing at a local candle clone; if the PRs land, that patch section is deleted and nothing else changes.
 
 ## How this roadmap decides what to build
 
@@ -72,7 +90,7 @@ The consequence worth stating plainly: **if you want something here, an issue de
 ## Not planned
 
 - **An inference engine.** candle-mi recomputes the full sequence at every generation step and ships no KV cache, on purpose, because interventions have to be re-observed at every position. For serving, use [candle-vllm](https://github.com/EricLBuehler/candle-vllm), [vllm.rs](https://github.com/guoqingbao/vllm.rs) or [vLLM](https://github.com/vllm-project/vllm).
-- **A training framework.** candle-mi's backbones carry gradients and it ships a checkpointable optimizer, but no training loop, schedule or data loader. Those are experiment-shaped and stay with the caller.
+- **A training loop inside candle-mi.** This one is a scope boundary, not an absence: training on this stack is active and load-bearing, and it is where all three candle pull requests above came from. candle-mi ships the pieces a loop cannot reconstruct for itself, namely backbones that carry gradients end to end over a `VarMap`, seeded from-scratch initialization so a reference model is reproducible from `(config, seed)` alone, backward-safe fused-op dispatch, and a checkpointable `AdamW` whose moments and step counter survive a process boundary. The loop itself, along with the learning-rate schedule, the parameter EMA, the decay/no-decay split, the data loader and the prefetch pipeline, lives in the consumer. Today that consumer trains candle-mi's own `OthelloGpt` over a `VarMap`, so the trained object and the probed object are literally the same object and cannot drift apart. Those pieces graduate into candle-mi if a second consumer needs them: one consumer is an experiment, two is an API.
 - **GPU backends nobody here can test.** AMD ROCm, Intel Arc and Intel-Mac Metal are all un-gated on hardware access or a contributor PR. Shipping untested FFI is against the discipline these crates are written to.
 
 ## Where the detail lives
