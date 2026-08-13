@@ -57,7 +57,7 @@ Solid arrows are hard dependencies; dotted arrows are optional, behind the named
 
 ## What the four crates share
 
-- **MSRV 1.88**, declared on every crate and tested on every crate: each one runs a dedicated `1.88` CI lane alongside rolling `stable`, so a compiler that moves under us cannot quietly break the floor in either direction.
+- **A tested MSRV on every crate**, each with its own CI lane alongside rolling `stable`, so a compiler that moves under us cannot quietly break the floor in either direction. The floor is **1.88** for anamnesis and hypomnesis, and **1.91** for hf-fetch-model and candle-mi, which reach `hf-xet` through `hf-hub` 1.0. Both numbers are what the dependency graph enforces, not a preference.
 - **MIT OR Apache-2.0**, on every crate.
 - **`unsafe` is forbidden by default.** hf-fetch-model forbids it outright. The other three allow it only in the narrow paths that genuinely need it (memory-mapped reads, and FFI to NVML, DXGI, PDH and Metal), and each states its own exemption in its README badge.
 - **Pre-1.0.** The APIs may change between minor versions. Every crate keeps a `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/), and that changelog, not any roadmap, is the authoritative record of what shipped.

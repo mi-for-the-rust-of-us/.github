@@ -42,7 +42,7 @@ Running the `rust_2024_compatibility` lint group against both crates surfaces ex
 - **anamnesis**: 1 site, in the threaded dequant dispatch.
 - **hf-fetch-model**: roughly 16 sites, spread across the async stack. The types involved are tokio `Semaphore` permits, tokio `Mutex` guards, `futures-channel` oneshots and `Bytes`, which is to say precisely the destructors whose timing is observable.
 
-Neither crate is exposed to the usual 2024 hazards: `unsafe_op_in_unsafe_fn` and `static_mut_refs` do not apply, and MSRV 1.88 clears the 1.85 floor. The risk is not compilation, it is silent behavior change in concurrent code, and the compiler can only say where to look, not whether it matters. These migrate one crate at a time, deliberately, when there is a reason beyond uniformity. anamnesis is the cheap one.
+Neither crate is exposed to the usual 2024 hazards: `unsafe_op_in_unsafe_fn` and `static_mut_refs` do not apply, and their 1.88 MSRV clears the 1.85 floor comfortably. The risk is not compilation, it is silent behavior change in concurrent code, and the compiler can only say where to look, not whether it matters. These migrate one crate at a time, deliberately, when there is a reason beyond uniformity. anamnesis is the cheap one.
 
 ### Release lockstep
 
@@ -55,7 +55,9 @@ This is the constraint most likely to bite someone who edits one manifest withou
 ### Documentation and CI hygiene
 
 - **Per-feature rustdoc lane**, deferred from candle-mi v0.1.21, which found five broken intra-doc links that no existing lane could catch. Wants adding to `ci.yml`, `publish.yml` and `preflight.ps1`.
-- **MSRV lanes are now uniform.** All four crates test `1.88` alongside rolling `stable`. hf-fetch-model was the last gap, and closing it immediately surfaced a real failure, a clippy lint that fires on 1.88 and not on stable. A stable-only CI cannot see version drift in either direction.
+- **Every crate now has an MSRV lane** alongside rolling `stable`. hf-fetch-model was the last gap, and closing it immediately surfaced a real failure, a clippy lint that fired on the MSRV toolchain and not on stable. A stable-only CI cannot see version drift in either direction.
+
+  The floors are no longer uniform, and that is dependency-driven rather than a choice: **1.88** for anamnesis and hypomnesis, **1.91** for hf-fetch-model and candle-mi. `hf-hub` 1.0 brings a mandatory `hf-xet`, and inside it `xet-core-structures` declares no `rust-version` at all while calling `str::floor_char_boundary`, stable only since 1.91. Cargo's MSRV resolution therefore reports 1.89 and is wrong: **the declared-metadata floor is a lower bound, and only a real build proves the number.**
 
 ### Upstream candle
 
