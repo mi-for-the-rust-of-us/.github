@@ -6,14 +6,14 @@ The cross-crate view for [mi-for-the-rust-of-us](https://github.com/mi-for-the-r
 
 ## Where things stand
 
-| Crate | Released | Next |
-|---|---|---|
-| [candle-mi](https://github.com/mi-for-the-rust-of-us/candle-mi) | `0.1.21` | `0.2.0`: dictionary training and pre-1.0 API hygiene |
-| [hf-fetch-model](https://github.com/mi-for-the-rust-of-us/hf-fetch-model) | `0.11.2` | No dated milestone. Remote header inspection is complete for all four formats; further work is demand-gated |
-| [anamnesis](https://github.com/mi-for-the-rust-of-us/anamnesis) | `0.7.2` | `0.7.3`: caller-chosen output dtype. Then `0.8.0`: Python bindings |
-| [hypomnesis](https://github.com/mi-for-the-rust-of-us/hypomnesis) | `0.2.8` | Nothing scheduled. `0.3.0` is a list of candidates, every one gated on a real consumer asking |
+| Crate | Released | MSRV | Next |
+|---|---|---|---|
+| [candle-mi](https://github.com/mi-for-the-rust-of-us/candle-mi) | `0.1.22` | 1.91 | `0.1.23`: the MSRV bump itself. Then `0.2.0`: dictionary training and pre-1.0 API hygiene |
+| [hf-fetch-model](https://github.com/mi-for-the-rust-of-us/hf-fetch-model) | `0.11.3` | 1.91 | The `hf-hub` 1.1.0 bump, which should be a one-line version change: 0.11.3 removed the dependency on hf-hub's cache resolution entirely |
+| [anamnesis](https://github.com/mi-for-the-rust-of-us/anamnesis) | `0.7.3` | 1.88 | Phases 7.3 and 7.4: caller-chosen output dtype, on the `convert` and `remember` paths. Then `0.8.0`: Python bindings |
+| [hypomnesis](https://github.com/mi-for-the-rust-of-us/hypomnesis) | `0.2.9` | 1.88 | Nothing scheduled. `0.3.0` is a list of candidates, every one gated on a real consumer asking |
 
-All four are pre-1.0. APIs may change between minor versions.
+All four are pre-1.0 and all four are on **edition 2024**. APIs may change between minor versions.
 
 ## Cross-cutting work
 
@@ -31,18 +31,13 @@ candle-mi `0.2.0` adds reference-grade TopK sparse-autoencoder training. Today c
 
 Masked-diffusion models are the proving ground, because no public dictionary exists for them at all, so a trained-in-candle-mi SAE is the only way DLM-Scope-style analysis happens.
 
-The groundwork is already carrying real weight rather than waiting to be tested. The v0.1.20 and v0.1.21 trainable-backbone work (`track_op` dispatch, `OthelloGpt::init`, the checkpointable `AdamW` behind the `training` feature) is what a multi-epoch, multi-stage masked-diffusion training run is currently running on, staged across process boundaries and validated step-for-step against a PyTorch oracle. The SAE trainer lands on tested ground.
+The groundwork is already carrying real weight rather than waiting to be tested. The trainable-backbone work of v0.1.20 through v0.1.22 (`track_op` dispatch, `OthelloGpt::init`, the checkpointable `AdamW`, then `fold_ema` and a single-launch multi-tensor `AdamW` on CUDA, all behind the `training` feature) is what a multi-epoch, multi-stage masked-diffusion training run is currently running on, staged across process boundaries and validated step-for-step against a PyTorch oracle. The SAE trainer lands on tested ground.
 
-### Edition 2024
+### Edition 2024, done
 
-candle-mi and hypomnesis are on edition 2024. anamnesis and hf-fetch-model are still on 2021, and this is not an oversight, it is a deferred cost that has now been measured.
+All four crates are on edition 2024. anamnesis migrated in `0.7.3` and hf-fetch-model in `0.11.3`, one crate at a time as planned.
 
-Running the `rust_2024_compatibility` lint group against both crates surfaces exactly one issue class, and it is the one that does not announce itself: `tail_expr_drop_order`, relative drop order changing in Rust 2024.
-
-- **anamnesis**: 1 site, in the threaded dequant dispatch.
-- **hf-fetch-model**: roughly 16 sites, spread across the async stack. The types involved are tokio `Semaphore` permits, tokio `Mutex` guards, `futures-channel` oneshots and `Bytes`, which is to say precisely the destructors whose timing is observable.
-
-Neither crate is exposed to the usual 2024 hazards: `unsafe_op_in_unsafe_fn` and `static_mut_refs` do not apply, and their 1.88 MSRV clears the 1.85 floor comfortably. The risk is not compilation, it is silent behavior change in concurrent code, and the compiler can only say where to look, not whether it matters. These migrate one crate at a time, deliberately, when there is a reason beyond uniformity. anamnesis is the cheap one.
+Worth keeping the reason it was treated as a real migration rather than a manifest edit. The `rust_2024_compatibility` lint group surfaced exactly one issue class in both crates, and it was the one that does not announce itself: **`tail_expr_drop_order`**, relative drop order changing in Rust 2024. One site in anamnesis's threaded dequant dispatch, roughly sixteen across hf-fetch-model's async stack, involving tokio `Semaphore` permits, tokio `Mutex` guards, `futures-channel` oneshots and `Bytes`, precisely the destructors whose timing is observable. Neither crate was exposed to the usual hazards: `unsafe_op_in_unsafe_fn` and `static_mut_refs` did not apply. The risk was never compilation; it was silent behaviour change in concurrent code, where the compiler can say where to look but not whether it matters.
 
 ### Release lockstep
 
@@ -52,9 +47,12 @@ This is the constraint most likely to bite someone who edits one manifest withou
 
 `hypomnesis` is the loose one: candle-mi takes it optionally behind the `memory` feature, hf-fetch-model requires it, and nothing in the public API crosses between them, so its releases do not need coordinating.
 
+A second, subtler coupling surfaced with hypomnesis `0.2.8`, which made `cli` a **default** feature. hf-fetch-model was taking hypomnesis with defaults on, and because cargo unions features across the graph, that dragged `clap` (four crates), `anstyle` and `ctrlc` into **candle-mi's** build regardless of candle-mi's own `default-features = false`. Fixed in hf-fetch-model 0.11.3. The general lesson: **an optional-by-default feature in a leaf crate is not local to that crate**, and a `default-features = false` opt-out only holds if every path to the dependency also opts out.
+
 ### Documentation and CI hygiene
 
-- **Per-feature rustdoc lane**, deferred from candle-mi v0.1.21, which found five broken intra-doc links that no existing lane could catch. Wants adding to `ci.yml`, `publish.yml` and `preflight.ps1`.
+- **Per-feature rustdoc lane**, deferred from candle-mi v0.1.21, which found five broken intra-doc links that no existing lane could catch. Wants adding to `ci.yml`, `publish.yml` and `preflight.ps1`. A second reason arrived since: candle-mi's `[package.metadata.docs.rs]` feature list had silently omitted `training`, so `optim::AdamW`, `fold_ema` and `FoldPath` shipped in 0.1.22 with **no docs.rs pages at all**. Nothing checks that the docs.rs list covers the feature set.
+- **A clippy lane that lints test and example targets.** candle-mi's lanes pass neither `--all-targets` nor `-D`, so no test or example has ever been linted; a `doc_markdown` violation from June survived undetected. The tree is now clean across all eleven feature sets, which makes gating viable, but two measurement traps have to be respected or the lane will lie: cargo does not re-emit diagnostics for **fresh units** (a warm `target/` under-reports, so local preflight disagrees with a cold CI runner), and `-D warnings` **aborts the build before later targets compile**, so a gating lane reveals findings in waves rather than all at once.
 - **Every crate now has an MSRV lane** alongside rolling `stable`. hf-fetch-model was the last gap, and closing it immediately surfaced a real failure, a clippy lint that fired on the MSRV toolchain and not on stable. A stable-only CI cannot see version drift in either direction.
 
   The floors are no longer uniform, and that is dependency-driven rather than a choice: **1.88** for anamnesis and hypomnesis, **1.91** for hf-fetch-model and candle-mi. `hf-hub` 1.0 brings a mandatory `hf-xet`, and inside it `xet-core-structures` declares no `rust-version` at all while calling `str::floor_char_boundary`, stable only since 1.91. Cargo's MSRV resolution therefore reports 1.89 and is wrong: **the declared-metadata floor is a lower bound, and only a real build proves the number.**
