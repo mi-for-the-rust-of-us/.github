@@ -15,7 +15,7 @@ The constraint turned out to be far less limiting than the field's tooling assum
 
 - Decoder-only transformers up to roughly **7B parameters** load and run, including LLaMA 1/2/3, Mistral, Qwen 2/2.5/3, Phi-3/4, Gemma, Gemma 2 and StarCoder2. Also RWKV-6/7 linear RNNs and masked-diffusion language models, which most interpretability tooling does not reach at all.
 - Anthropic's [Figure 13 rhyme-planning experiment](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#dives-poem-location) runs end to end on a **524K-feature Cross-Layer Transcoder**, suppress-and-inject position sweep included, against a CLT implementation validated at **90/90 top-10 features** against the Python reference. And not once: enough model-by-transcoder cells fit on the card to show that the single-position signature reproduces while the *planning site itself does not*. That is a finding you cannot reach by replicating a figure one time.
-- The logit lens over LLaMA 3.2 1B runs in about **112 ms**.
+- Every numeric path is checked against a `PyTorch` fp32 oracle, and **the date of the check is in the repository**. candle-mi's [`RESURRECTION.md`](https://github.com/mi-for-the-rust-of-us/candle-mi/blob/main/RESURRECTION.md) carries 21 oracle entries with a per-test last-verified date, re-run locally because CI structurally cannot (gated models, and many need the 16 GB card). For interpretability that matters more than throughput: the product is a claim about a model's internals, so an implementation that quietly differs from the reference does not run slower, it produces a finding that is not there.
 
 None of that needs a cluster, an H100, or a cloud budget. If you have a 16 GB card, most of what is in these repositories is reachable from your desk, and that is the whole point of the organization.
 
@@ -62,6 +62,8 @@ Solid arrows are hard dependencies; dotted arrows are optional, behind the named
 - **`unsafe` is forbidden by default.** hf-fetch-model forbids it outright. The other three allow it only in the narrow paths that genuinely need it (memory-mapped reads, and FFI to NVML, DXGI, PDH and Metal), and each states its own exemption in its README badge.
 - **Pre-1.0.** The APIs may change between minor versions. Every crate keeps a `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/), and that changelog, not any roadmap, is the authoritative record of what shipped.
 - **Dogfooding is the development method.** candle-mi is the demanding consumer that drives the other three: most of hypomnesis's releases since v0.2.4 originate in a written dogfooding report from a real research run, not from a feature wishlist.
+
+  The clearest single measurement of that loop runs between two of these crates. candle-mi v0.2.0 adopted hf-fetch-model's HTTP Range inspect to read a `GemmaScope` transcoder's dimensions, and the same file on the same link went from **302,131,416 bytes in 61.97 s** to **86,037 bytes in 3.63 s**: eight range requests, 0.028% of the archive, for the two integers it actually needed. The five findings that integration produced went back upstream as a report. That is the whole thesis in one line, and it is measured rather than asserted.
 
 ## Roadmap
 
