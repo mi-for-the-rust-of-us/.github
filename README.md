@@ -3,7 +3,7 @@
 Organization-level defaults for [mi-for-the-rust-of-us](https://github.com/mi-for-the-rust-of-us).
 
 Nothing here is a crate. This repository holds the content GitHub renders on the
-organization itself, plus any community health files the four crate
+organization itself, plus any community health files the five crate
 repositories inherit when they do not define their own.
 
 | Path | What it does |
@@ -12,5 +12,6 @@ repositories inherit when they do not define their own.
 
 The crates live in their own repositories: [candle-mi](https://github.com/mi-for-the-rust-of-us/candle-mi),
 [hf-fetch-model](https://github.com/mi-for-the-rust-of-us/hf-fetch-model),
-[anamnesis](https://github.com/mi-for-the-rust-of-us/anamnesis) and
-[hypomnesis](https://github.com/mi-for-the-rust-of-us/hypomnesis).
+[anamnesis](https://github.com/mi-for-the-rust-of-us/anamnesis),
+[hypomnesis](https://github.com/mi-for-the-rust-of-us/hypomnesis) and
+[candle-fused-attn](https://github.com/mi-for-the-rust-of-us/candle-fused-attn).
