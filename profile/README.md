@@ -27,10 +27,12 @@ graph TD
     HFM["<b>hf-fetch-model</b><br/>get the weights"]
     AMN["<b>anamnesis</b><br/>read the weights"]
     HMN["<b>hypomnesis</b><br/>watch the memory"]
+    FA["<b>candle-fused-attn</b><br/>train the attention"]
 
     CM --> HFM
     CM -. "sae / stoicheia / quantized" .-> AMN
     CM -. "memory" .-> HMN
+    CM -. "fused-attn" .-> FA
     HFM --> AMN
     HFM -. "cli" .-> HMN
 ```
