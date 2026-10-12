@@ -32,7 +32,7 @@ graph TD
     CM -. "sae / stoicheia / quantized" .-> AMN
     CM -. "memory" .-> HMN
     HFM --> AMN
-    HFM --> HMN
+    HFM -. "cli" .-> HMN
 ```
 
 Solid arrows are hard dependencies; dotted arrows are optional, behind the named feature flags.
